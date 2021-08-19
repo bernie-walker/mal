@@ -1,5 +1,5 @@
 const { comp } = require('./utils')
-const { List, Vector } = require('./types')
+const { List, Vector, Nil, Keyword, Sym, Str, HashMap } = require('./types')
 
 class Reader {
   constructor(tokens) {
@@ -33,15 +33,31 @@ const readAtom = (reader) => {
     return parseFloat(token);
   }
 
-  if (token === "true") {
+  if (token === 'true') {
     return true;
   }
 
-  if (token === "false") {
+  if (token === 'false') {
     return false;
   }
 
-  return token;
+  if (token === 'nill') {
+    return Nil;
+  }
+
+  if (token.startsWith(':')) {
+    return new Keyword(token.slice(1));
+  }
+
+  if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
+    return new Str(token.slice(1, -1));
+  }
+
+  if (token.startsWith('"')) {
+    throw 'unbalanced string';
+  }
+
+  return new Sym(token);
 };
 
 const readSeq = (reader, terminator) => {
@@ -50,7 +66,7 @@ const readSeq = (reader, terminator) => {
   reader.next();
   while (reader.peek() !== terminator) {
     if (reader.peek() === undefined) {
-      throw 'unbalanced';
+      throw 'unbalanced Seq';
     }
 
     seq.push(readForm(reader));
@@ -60,16 +76,45 @@ const readSeq = (reader, terminator) => {
   return seq;
 };
 
+const isValidKey = (key) => ((key instanceof Str) || (key instanceof Keyword));
+
+const readHashMap = (reader) => {
+  const seq = readSeq(reader, "}");
+
+  if ((seq.length % 2) !== 0) {
+    throw 'Odd number of hashmap arguments';
+  }
+
+  const map = new Map();
+
+  for (let i = 0; i < seq.length; i += 2) {
+    const key = seq[i];
+    const value = seq[i + 1];
+
+    if (!isValidKey(key)) {
+      throw 'Invalid key';
+    }
+
+    map.set(key, value);
+  }
+
+  return new HashMap(map);
+};
+
 const readVector = (reader) => new Vector(readSeq(reader, "]"));
 
 const readList = (reader) => new List(readSeq(reader, ")"));
 
 const readForm = (reader) => {
   switch (reader.peek()) {
-    case "(": return readList(reader);
-    case "[": return readVector(reader);
-    case ")": return "unbalanced )";
-    case "]": return "unbalanced ]";
+    case '(': return readList(reader);
+    case '[': return readVector(reader);
+    case '{': return readHashMap(reader);
+
+    case ')': throw 'unexpected )';
+    case ']': throw 'unexpected ]';
+    case '}': throw 'unexpected }';
+
     default: return readAtom(reader);
   }
 }
