@@ -50,7 +50,8 @@ const readAtom = (reader) => {
   }
 
   if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
-    return new Str(token.slice(1, -1));
+    const str = token.slice(1, -1).replace(/\\(.)/g, (_, c) => c === "n" ? "\n" : c);
+    return new Str(str);
   }
 
   if (token.startsWith('"')) {

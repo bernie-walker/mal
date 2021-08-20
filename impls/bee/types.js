@@ -1,19 +1,19 @@
 class MalVal {
-  prStr() {
+  prStr(printReadably = false) {
     return 'default MalVal';
   }
 }
 
-const prStr = (val) => {
+const prStr = (val, printReadably) => {
   if (val instanceof MalVal) {
-    return val.prStr();
+    return val.prStr(printReadably);
   }
 
   return val.toString();
 }
 
-const mkString = (malSeq, prepend, append) => {
-  const valuesToString = malSeq.map(prStr).join(" ");
+const mkString = (malSeq, prepend, append, printReadably) => {
+  const valuesToString = malSeq.map(el => prStr(el, printReadably)).join(" ");
   return prepend + valuesToString + append;
 }
 
@@ -23,8 +23,8 @@ class List extends MalVal {
     this.elements = seq;
   }
 
-  prStr() {
-    return mkString(this.elements, "(", ")");
+  prStr(printReadably) {
+    return mkString(this.elements, "(", ")", printReadably);
   }
 }
 
@@ -34,8 +34,8 @@ class Vector extends MalVal {
     this.elements = seq;
   }
 
-  prStr() {
-    return mkString(this.elements, "[", "]");
+  prStr(printReadably) {
+    return mkString(this.elements, "[", "]", printReadably);
   }
 }
 
@@ -44,7 +44,7 @@ class MalNil extends MalVal {
     super();
   }
 
-  prStr() {
+  prStr(printReadably) {
     return 'nil';
   }
 }
@@ -57,7 +57,7 @@ class Keyword extends MalVal {
     this.keyword = keyword;
   }
 
-  prStr() {
+  prStr(printReadably) {
     return ':' + this.keyword;
   }
 }
@@ -68,7 +68,7 @@ class Sym extends MalVal {
     this.symbol = symbol;
   }
 
-  prStr() {
+  prStr(printReadably) {
     return this.symbol;
   }
 }
@@ -79,8 +79,16 @@ class Str extends MalVal {
     this.string = string;
   }
 
-  prStr() {
-    return '"' + this.string + '"';
+  prStr(printReadably) {
+    let str = this.string;
+
+    if (printReadably) {
+      str = str.replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\n")
+    }
+
+    return '"' + str + '"';
   }
 }
 
@@ -90,11 +98,11 @@ class HashMap extends MalVal {
     this.map = map;
   }
 
-  prStr() {
+  prStr(printReadably) {
     let entries = "";
 
     for (const [key, val] of this.map.entries()) {
-      entries += `${prStr(key)} ${prStr(val)} `
+      entries += `${prStr(key, printReadably)} ${prStr(val, printReadably)} `
     }
 
     return `{${entries.slice(0, -1)}}`

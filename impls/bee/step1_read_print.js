@@ -4,10 +4,11 @@ const readLine = require('readline').createInterface({
 });
 const { comp } = require('./utils')
 const { readStr: read } = require('./reader')
-const { prStr: print } = require('./printer')
+const { prStr } = require('./printer')
 
 
 const eval = (ast) => ast;
+const print = (val) => prStr(val, true);
 
 const rep = comp(print, eval, read);
 
