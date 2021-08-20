@@ -23,6 +23,10 @@ class List extends MalVal {
     this.elements = seq;
   }
 
+  isEmpty() {
+    return this.elements.length === 0;
+  }
+
   prStr(printReadably) {
     return mkString(this.elements, "(", ")", printReadably);
   }

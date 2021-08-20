@@ -125,14 +125,6 @@ const tokenize = (str) => {
   return [...str.matchAll(re)].map(([, token,]) => token).slice(0, -1);
 };
 
-const parseStr = comp(readForm, Reader.create, tokenize);
-
-const readStr = (str) => {
-  try {
-    return parseStr(str);
-  } catch (e) {
-    return e;
-  }
-}
+const readStr = comp(readForm, Reader.create, tokenize);
 
 module.exports = { readStr };
