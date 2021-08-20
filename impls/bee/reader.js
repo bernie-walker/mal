@@ -1,5 +1,5 @@
 const { comp } = require('./utils')
-const { List, Vector, Nil, Keyword, Sym, Str, HashMap } = require('./types')
+const { List, Vector, Nil, Keyword, Sym, Str, HashMap, NONE } = require('./types')
 
 class Reader {
   constructor(tokens) {
@@ -56,6 +56,10 @@ const readAtom = (reader) => {
 
   if (token.startsWith('"')) {
     throw 'unbalanced string';
+  }
+
+  if (token.startsWith(';')) {
+    return NONE;
   }
 
   return new Sym(token);
@@ -115,6 +119,8 @@ const readForm = (reader) => {
     case ')': throw 'unexpected )';
     case ']': throw 'unexpected ]';
     case '}': throw 'unexpected }';
+
+    case undefined: return NONE;
 
     default: return readAtom(reader);
   }

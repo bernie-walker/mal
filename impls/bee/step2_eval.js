@@ -18,16 +18,22 @@ const eval = (ast) => evaluate(ast, {
 
 const rep = comp(print, eval, read);
 
-const main = () => {
-  readLine.question('user> ', (str) => {
-    try {
-      console.log(rep(str))
-    } catch (error) {
-      console.log(error)
-    } finally {
-      main();
-    }
-  });
+const repl = (str) => {
+  let output = "";
+
+  try {
+    output = rep(str);
+  } catch (error) {
+    output = error;
+  }
+
+  if (output.length > 0) {
+    console.log(output);
+  }
+
+  main();
 };
+
+const main = () => readLine.question('user> ', repl);
 
 main();

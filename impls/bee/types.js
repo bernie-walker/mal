@@ -115,4 +115,12 @@ class HashMap extends MalVal {
   }
 }
 
-module.exports = { prStr, List, Vector, Nil, Keyword, Sym, Str, HashMap };
+class None {
+  toString() {
+    return "";
+  }
+}
+
+const NONE = new None();
+
+module.exports = { prStr, List, Vector, Nil, Keyword, Sym, Str, HashMap, NONE };
