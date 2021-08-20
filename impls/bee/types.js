@@ -102,14 +102,16 @@ class HashMap extends MalVal {
     this.map = map;
   }
 
+  entries() {
+    return Array.from(this.map.entries())
+  }
+
+  #pr = (k, v, readably) => `${prStr(k, readably)} ${prStr(v, readably)} `
+
   prStr(printReadably) {
-    let entries = "";
+    const entriesToStr = this.entries().reduce((str, [k, v]) => str + this.#pr(k, v, printReadably), "");
 
-    for (const [key, val] of this.map.entries()) {
-      entries += `${prStr(key, printReadably)} ${prStr(val, printReadably)} `
-    }
-
-    return `{${entries.slice(0, -1)}}`
+    return `{${entriesToStr.slice(0, -1)}}`
   }
 }
 

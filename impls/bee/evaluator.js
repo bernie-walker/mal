@@ -23,6 +23,11 @@ const evalAst = (ast, env) => {
     return new Vector(ast.elements.map(el => evaluate(el, env)));
   }
 
+  if (ast instanceof HashMap) {
+    const evaluatedEntries = ast.entries().map(([k, v]) => [k, evaluate(v, env)]);
+    return new HashMap(new Map(evaluatedEntries));
+  }
+
   return ast;
 };
 
