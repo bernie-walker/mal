@@ -1,18 +1,9 @@
-const { List, Sym, Vector, HashMap } = require('./types');
-
-const resolveSymbol = (symbol, env) => {
-  const value = env[symbol];
-
-  if (value === undefined) {
-    throw `Symbol ${symbol} not defined`
-  }
-
-  return value;
-};
+const { List, Sym, Vector, HashMap, prStr } = require('./types');
+const Env = require('./env');
 
 const evalAst = (ast, env) => {
   if (ast instanceof Sym) {
-    return resolveSymbol(ast.symbol, env);
+    return env.get(ast);
   }
 
   if (ast instanceof List) {
@@ -40,10 +31,45 @@ const evaluate = (ast, env) => {
     return ast;
   }
 
+  const [firstEl] = ast.elements;
+
+  if (firstEl.symbol === 'def!') {
+    if (!(ast.elements.length === 3)) {
+      throw 'Invalid number of arguments to def!';
+    }
+
+    const [, sym, val] = ast.elements;
+
+    return env.set(sym, evaluate(val, env));
+  }
+
+  if (firstEl.symbol === 'let*') {
+    if (!(ast.elements.length === 3)) {
+      throw 'Invalid number of arguments to let*';
+    }
+
+    const [, bindings, sexp] = ast.elements;
+
+    if (!(((bindings instanceof List) || (bindings instanceof Vector)) && ((bindings.elements.length % 2) === 0))) {
+      throw 'Invalid bindings';
+    }
+
+    const newEnv = new Env(env);
+
+    for (let i = 0; i < bindings.elements.length; i += 2) {
+      const key = bindings.elements[i];
+      const val = bindings.elements[i + 1];
+
+      newEnv.set(key, evaluate(val, newEnv));
+    }
+
+    return evaluate(sexp, newEnv);
+  }
+
   const [fn, ...args] = evalAst(ast, env).elements;
 
   if (!(fn instanceof Function)) {
-    throw `${fn} is not a function`
+    throw `${prStr(fn)} is not a function`
   }
 
   return fn.apply(null, args);
