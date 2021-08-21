@@ -41,7 +41,7 @@ const readAtom = (reader) => {
     return false;
   }
 
-  if (token === 'nill') {
+  if (token === 'nil') {
     return Nil;
   }
 

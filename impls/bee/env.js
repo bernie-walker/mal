@@ -37,6 +37,20 @@ class Env {
 
     return env.data.get(sym.symbol);
   }
+
+  static create(outer, binds, exprs) {
+    if (binds.length != exprs.length) {
+      throw 'Bindings do not match expressions';
+    }
+
+    const newEnv = new Env(outer);
+
+    binds.forEach((element, ind) => {
+      newEnv.set(element, exprs[ind]);
+    });
+
+    return newEnv;
+  }
 }
 
 module.exports = Env;

@@ -1,4 +1,4 @@
-const { List, Sym, Vector, HashMap, prStr } = require('./types');
+const { List, Sym, Vector, HashMap, prStr, Nil, MalSeq } = require('./types');
 const Env = require('./env');
 
 const evalAst = (ast, env) => {
@@ -19,6 +19,10 @@ const evalAst = (ast, env) => {
     return new HashMap(new Map(evaluatedEntries));
   }
 
+  if (ast === undefined) {
+    return Nil;
+  }
+
   return ast;
 };
 
@@ -34,7 +38,7 @@ const evaluate = (ast, env) => {
   const [firstEl] = ast.elements;
 
   if (firstEl.symbol === 'def!') {
-    if (!(ast.elements.length === 3)) {
+    if (ast.elements.length !== 3) {
       throw 'Invalid number of arguments to def!';
     }
 
@@ -44,13 +48,13 @@ const evaluate = (ast, env) => {
   }
 
   if (firstEl.symbol === 'let*') {
-    if (!(ast.elements.length === 3)) {
+    if (ast.elements.length !== 3) {
       throw 'Invalid number of arguments to let*';
     }
 
-    const [, bindings, sexp] = ast.elements;
+    const [, bindings, form] = ast.elements;
 
-    if (!(((bindings instanceof List) || (bindings instanceof Vector)) && ((bindings.elements.length % 2) === 0))) {
+    if (!((bindings instanceof MalSeq) && ((bindings.elements.length % 2) === 0))) {
       throw 'Invalid bindings';
     }
 
@@ -63,7 +67,43 @@ const evaluate = (ast, env) => {
       newEnv.set(key, evaluate(val, newEnv));
     }
 
-    return evaluate(sexp, newEnv);
+    return evaluate(form, newEnv);
+  }
+
+  if (firstEl.symbol === 'do') {
+    return ast.elements.slice(1).reduce((_, form) => evaluate(form, env), Nil);
+  }
+
+  if (firstEl.symbol === 'if') {
+    if (ast.elements.length < 3) {
+      throw 'Too less arguments to if';
+    }
+
+    if (ast.elements.length > 4) {
+      throw 'Too many arguments to if';
+    }
+
+    const [, cond, form1, form2] = ast.elements;
+    const bool = evaluate(cond, env);
+
+    if ((bool === false) || bool === Nil) {
+      return evaluate(form2, env);
+    }
+
+    return evaluate(form1, env);
+  }
+
+  if (firstEl.symbol === 'fn*') {
+    if (ast.elements.length !== 3) {
+      throw 'Invalid number of args to fn*';
+    }
+
+    const [, params, fnBody] = ast.elements;
+
+    return function (...args) {
+      const fnScope = Env.create(env, params.elements, args);
+      return evaluate(fnBody, fnScope);
+    }
   }
 
   const [fn, ...args] = evalAst(ast, env).elements;
