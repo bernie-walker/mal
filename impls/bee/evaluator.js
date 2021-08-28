@@ -1,5 +1,15 @@
-const { List, Sym, Vector, HashMap, prStr, Nil, MalSeq } = require('./types');
+const {
+  List,
+  Sym,
+  Vector,
+  HashMap,
+  prStr,
+  Nil,
+  MalSeq,
+  MalFunc,
+} = require('./types');
 const Env = require('./env');
+const { init, last } = require('./utils');
 
 const evalAst = (ast, env) => {
   if (ast instanceof Sym) {
@@ -7,15 +17,17 @@ const evalAst = (ast, env) => {
   }
 
   if (ast instanceof List) {
-    return new List(ast.elements.map(el => evaluate(el, env)));
+    return new List(ast.elements.map((el) => evaluate(el, env)));
   }
 
   if (ast instanceof Vector) {
-    return new Vector(ast.elements.map(el => evaluate(el, env)));
+    return new Vector(ast.elements.map((el) => evaluate(el, env)));
   }
 
   if (ast instanceof HashMap) {
-    const evaluatedEntries = ast.entries().map(([k, v]) => [k, evaluate(v, env)]);
+    const evaluatedEntries = ast
+      .entries()
+      .map(([k, v]) => [k, evaluate(v, env)]);
     return new HashMap(new Map(evaluatedEntries));
   }
 
@@ -26,93 +38,122 @@ const evalAst = (ast, env) => {
   return ast;
 };
 
-const evaluate = (ast, env) => {
-  if (!(ast instanceof List)) {
-    return evalAst(ast, env);
+const evalIf = (list, env) => {
+  if (list.length < 3) {
+    throw 'Too less arguments to if';
   }
 
-  if (ast.isEmpty()) {
-    return ast;
+  if (list.length > 4) {
+    throw 'Too many arguments to if';
   }
 
-  const [firstEl] = ast.elements;
+  const [, cond, form1, form2] = list;
+  const bool = evaluate(cond, env);
 
-  if (firstEl.symbol === 'def!') {
-    if (ast.elements.length !== 3) {
-      throw 'Invalid number of arguments to def!';
-    }
-
-    const [, sym, val] = ast.elements;
-
-    return env.set(sym, evaluate(val, env));
+  if (bool === false || bool === Nil) {
+    return form2;
   }
 
-  if (firstEl.symbol === 'let*') {
-    if (ast.elements.length !== 3) {
-      throw 'Invalid number of arguments to let*';
-    }
-
-    const [, bindings, form] = ast.elements;
-
-    if (!((bindings instanceof MalSeq) && ((bindings.elements.length % 2) === 0))) {
-      throw 'Invalid bindings';
-    }
-
-    const newEnv = new Env(env);
-
-    for (let i = 0; i < bindings.elements.length; i += 2) {
-      const key = bindings.elements[i];
-      const val = bindings.elements[i + 1];
-
-      newEnv.set(key, evaluate(val, newEnv));
-    }
-
-    return evaluate(form, newEnv);
-  }
-
-  if (firstEl.symbol === 'do') {
-    return ast.elements.slice(1).reduce((_, form) => evaluate(form, env), Nil);
-  }
-
-  if (firstEl.symbol === 'if') {
-    if (ast.elements.length < 3) {
-      throw 'Too less arguments to if';
-    }
-
-    if (ast.elements.length > 4) {
-      throw 'Too many arguments to if';
-    }
-
-    const [, cond, form1, form2] = ast.elements;
-    const bool = evaluate(cond, env);
-
-    if ((bool === false) || bool === Nil) {
-      return evaluate(form2, env);
-    }
-
-    return evaluate(form1, env);
-  }
-
-  if (firstEl.symbol === 'fn*') {
-    if (ast.elements.length !== 3) {
-      throw 'Invalid number of args to fn*';
-    }
-
-    const [, params, fnBody] = ast.elements;
-
-    return function (...args) {
-      const fnScope = Env.create(env, params.elements, args);
-      return evaluate(fnBody, fnScope);
-    }
-  }
-
-  const [fn, ...args] = evalAst(ast, env).elements;
-
-  if (!(fn instanceof Function)) {
-    throw `${prStr(fn)} is not a function`
-  }
-
-  return fn.apply(null, args);
+  return form1;
 };
 
-module.exports = { evaluate }
+const evalLet = (list, env) => {
+  if (list.length !== 3) {
+    throw 'Invalid number of arguments to let*';
+  }
+
+  const [, bindings, form] = list;
+
+  if (!(bindings instanceof MalSeq && bindings.elements.length % 2 === 0)) {
+    throw 'Invalid bindings';
+  }
+
+  const newEnv = new Env(env);
+
+  for (let i = 0; i < bindings.elements.length; i += 2) {
+    const key = bindings.elements[i];
+    const val = bindings.elements[i + 1];
+
+    newEnv.set(key, evaluate(val, newEnv));
+  }
+
+  return [newEnv, form];
+};
+
+const evaluate = (ast, env) => {
+  while (true) {
+    if (!(ast instanceof List)) {
+      return evalAst(ast, env);
+    }
+
+    if (ast.isEmpty()) {
+      return ast;
+    }
+
+    const [firstEl] = ast.elements;
+
+    if (firstEl.symbol === 'def!') {
+      if (ast.elements.length !== 3) {
+        throw 'Invalid number of arguments to def!';
+      }
+
+      const [, sym, val] = ast.elements;
+
+      return env.set(sym, evaluate(val, env));
+    }
+
+    if (firstEl.symbol === 'let*') {
+      const [newEnv, form] = evalLet(ast.elements, env);
+
+      env = newEnv;
+      ast = form;
+
+      continue;
+    }
+
+    if (firstEl.symbol === 'do') {
+      init(ast.elements).forEach((f) => {
+        evalAst(f, env);
+      });
+
+      ast = last(ast.elements);
+
+      continue;
+    }
+
+    if (firstEl.symbol === 'if') {
+      ast = evalIf(ast.elements, env);
+      continue;
+    }
+
+    if (firstEl.symbol === 'fn*') {
+      if (ast.elements.length !== 3) {
+        throw 'Invalid number of args to fn*';
+      }
+
+      const [, params, fnBody] = ast.elements;
+
+      return new MalFunc(env, params.elements, fnBody);
+    }
+
+    const [fn, ...args] = evalAst(ast, env).elements;
+
+    if (fn instanceof MalFunc) {
+      const { env: defEnv, params, body } = fn;
+
+      env = Env.create(defEnv, params, args);
+      ast = body;
+
+      continue;
+    }
+
+    if (fn instanceof Function) {
+      return fn.apply(null, args);
+    }
+
+    throw `${prStr(fn)} is not a function`;
+  }
+};
+
+module.exports = { evaluate };
+// step5_tco

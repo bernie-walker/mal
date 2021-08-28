@@ -16,7 +16,7 @@ const prStr = (val, printReadably) => {
   }
 
   return val.toString();
-}
+};
 
 const equals = (val1, val2) => {
   if (isMalVal(val1)) {
@@ -27,9 +27,9 @@ const equals = (val1, val2) => {
 };
 
 const mkString = (malSeq, prepend, append, printReadably) => {
-  const valuesToString = malSeq.map(el => prStr(el, printReadably)).join(" ");
+  const valuesToString = malSeq.map((el) => prStr(el, printReadably)).join(' ');
   return prepend + valuesToString + append;
-}
+};
 
 class MalSeq extends MalVal {
   constructor(elements) {
@@ -50,7 +50,10 @@ class MalSeq extends MalVal {
       return false;
     }
 
-    return (this.elements.length === that.elements.length) && this.elements.every((el, ind) => equals(el, that.elements[ind]));
+    return (
+      this.elements.length === that.elements.length &&
+      this.elements.every((el, ind) => equals(el, that.elements[ind]))
+    );
   }
 }
 
@@ -60,7 +63,7 @@ class List extends MalSeq {
   }
 
   prStr(printReadably) {
-    return mkString(this.elements, "(", ")", printReadably);
+    return mkString(this.elements, '(', ')', printReadably);
   }
 
   equals(that) {
@@ -77,7 +80,7 @@ class Vector extends MalSeq {
   }
 
   prStr(printReadably) {
-    return mkString(this.elements, "[", "]", printReadably);
+    return mkString(this.elements, '[', ']', printReadably);
   }
 
   equals(that) {
@@ -115,7 +118,7 @@ class Keyword extends MalVal {
   }
 
   equals(that) {
-    return (that instanceof Keyword) && (this.keyword === that.keyword);
+    return that instanceof Keyword && this.keyword === that.keyword;
   }
 }
 
@@ -130,7 +133,7 @@ class Sym extends MalVal {
   }
 
   equals(that) {
-    return (that instanceof Sym) && (this.symbol === that.symbol);
+    return that instanceof Sym && this.symbol === that.symbol;
   }
 }
 
@@ -144,16 +147,17 @@ class Str extends MalVal {
     let str = this.string;
 
     if (printReadably) {
-      str = str.replace(/\\/g, "\\\\")
+      str = str
+        .replace(/\\/g, '\\\\')
         .replace(/"/g, '\\"')
-        .replace(/\n/g, "\\n")
+        .replace(/\n/g, '\\n');
     }
 
     return '"' + str + '"';
   }
 
   equals(that) {
-    return (that instanceof Str) && (this.string === that.string);
+    return that instanceof Str && this.string === that.string;
   }
 }
 
@@ -164,15 +168,18 @@ class HashMap extends MalVal {
   }
 
   entries() {
-    return Array.from(this.map.entries())
+    return Array.from(this.map.entries());
   }
 
-  #pr = (k, v, readably) => `${prStr(k, readably)} ${prStr(v, readably)} `
+  #pr = (k, v, readably) => `${prStr(k, readably)} ${prStr(v, readably)} `;
 
   prStr(printReadably) {
-    const entriesToStr = this.entries().reduce((str, [k, v]) => str + this.#pr(k, v, printReadably), "");
+    const entriesToStr = this.entries().reduce(
+      (str, [k, v]) => str + this.#pr(k, v, printReadably),
+      ''
+    );
 
-    return `{${entriesToStr.slice(0, -1)}}`
+    return `{${entriesToStr.slice(0, -1)}}`;
   }
 
   equals(that) {
@@ -189,12 +196,38 @@ class HashMap extends MalVal {
   }
 }
 
+class MalFunc extends MalVal {
+  constructor(env, params, body) {
+    super();
+    this.env = env;
+    this.params = params;
+    this.body = body;
+  }
+
+  prStr(printReadably = false) {
+    return '#<function>';
+  }
+}
+
 class None {
   toString() {
-    return "";
+    return '';
   }
 }
 
 const NONE = new None();
 
-module.exports = { prStr, isEqual: equals, MalSeq, List, Vector, Nil, Keyword, Sym, Str, HashMap, NONE };
+module.exports = {
+  prStr,
+  isEqual: equals,
+  MalSeq,
+  List,
+  Vector,
+  Nil,
+  Keyword,
+  Sym,
+  Str,
+  HashMap,
+  MalFunc,
+  NONE,
+};
