@@ -1,4 +1,4 @@
-const { prStr, Nil, List, MalSeq, isEqual } = require("./types");
+const { prStr, Nil, List, MalSeq, isEqual, Str } = require('./types');
 
 const add = (...args) => args.reduce((a, b) => a + b, 0);
 
@@ -8,13 +8,21 @@ const sub = (a, b) => a - b;
 
 const div = (a, b) => a / b;
 
-const prn = (val) => {
-  if (val === undefined) {
-    val = "";
-  }
-  console.log(prStr(val, true));
+const getString = (seq, printReadably, separator) =>
+  new Str(seq.map((el) => prStr(el, printReadably)).join(separator));
+
+const prString = (...args) => getString(args, true, ' ');
+
+const str = (...args) => getString(args, false, '');
+
+const logString = (str) => {
+  console.log(str);
   return Nil;
-}
+};
+
+const prn = (...args) => logString(prString.apply(null, args).string);
+
+const println = (...args) => logString(getString(args, false, ' ').string);
 
 const list = (...elements) => new List(elements);
 
@@ -36,7 +44,7 @@ const count = (val) => {
   }
 
   return checkSeq(val) && val.count();
-}
+};
 
 const lt = (n1, n2) => n1 < n2;
 
@@ -47,7 +55,7 @@ const gt = (n1, n2) => n1 > n2;
 const gte = (n1, n2) => n1 >= n2;
 
 const not = (val) => {
-  if ((val === Nil) || (val === false)) {
+  if (val === Nil || val === false) {
     return true;
   }
 
@@ -59,17 +67,20 @@ const core = {
   '*': mul,
   '-': sub,
   '/': div,
-  'prn': prn,
-  'list': list,
+  'pr-str': prString,
+  str,
+  prn: prn,
+  println,
+  list: list,
   'list?': isList,
   'empty?': isEmpty,
-  'count': count,
+  count: count,
   '=': isEqual,
   '<': lt,
   '<=': lte,
   '>': gt,
   '>=': gte,
-  'not': not
+  not: not,
 };
 
 module.exports = core;

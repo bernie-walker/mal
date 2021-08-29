@@ -146,14 +146,16 @@ class Str extends MalVal {
   prStr(printReadably) {
     let str = this.string;
 
-    if (printReadably) {
-      str = str
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n');
+    if (!printReadably) {
+      return str;
     }
 
-    return '"' + str + '"';
+    const readableString = str
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+      .replace(/\n/g, '\\n');
+
+    return `"${readableString}"`;
   }
 
   equals(that) {
@@ -209,6 +211,12 @@ class MalFunc extends MalVal {
   }
 }
 
+class VariadicFunc extends MalFunc {
+  constructor(env, params, body) {
+    super(env, params, body);
+  }
+}
+
 class None {
   toString() {
     return '';
@@ -229,5 +237,6 @@ module.exports = {
   Str,
   HashMap,
   MalFunc,
+  VariadicFunc,
   NONE,
 };

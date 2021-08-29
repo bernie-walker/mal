@@ -7,6 +7,7 @@ const {
   Nil,
   MalSeq,
   MalFunc,
+  VariadicFunc,
 } = require('./types');
 const Env = require('./env');
 const { init, last, tail } = require('./utils');
@@ -36,6 +37,38 @@ const evalAst = (ast, env) => {
   }
 
   return ast;
+};
+
+const evalMalFunc = (fn, args) => {
+  const { env, params, body } = fn;
+
+  if (fn instanceof VariadicFunc) {
+    args = [new List(args)];
+  }
+
+  return [Env.create(env, params, args), body];
+};
+
+const isAmpersand = (val) => val instanceof Sym && val.symbol === '&';
+
+const defMalFunc = (list, env) => {
+  if (list.length !== 3) {
+    throw 'Invalid number of args to fn*';
+  }
+
+  const [, params, fnBody] = list;
+
+  const [firstParam, ...restParams] = params.elements;
+
+  if (!isAmpersand(firstParam)) {
+    return new MalFunc(env, params.elements, fnBody);
+  }
+
+  if (restParams.length !== 1) {
+    throw 'Invalid parameter list';
+  }
+
+  return new VariadicFunc(env, restParams, fnBody);
 };
 
 const evalIf = (list, env) => {
@@ -127,22 +160,16 @@ const evaluate = (ast, env) => {
     }
 
     if (firstEl.symbol === 'fn*') {
-      if (ast.elements.length !== 3) {
-        throw 'Invalid number of args to fn*';
-      }
-
-      const [, params, fnBody] = ast.elements;
-
-      return new MalFunc(env, params.elements, fnBody);
+      return defMalFunc(ast.elements, env);
     }
 
     const [fn, ...args] = evalAst(ast, env).elements;
 
     if (fn instanceof MalFunc) {
-      const { env: defEnv, params, body } = fn;
+      const [fnEnv, fnBody] = evalMalFunc(fn, args);
 
-      env = Env.create(defEnv, params, args);
-      ast = body;
+      env = fnEnv;
+      ast = fnBody;
 
       continue;
     }
