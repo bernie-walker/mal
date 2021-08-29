@@ -39,10 +39,6 @@ class Env {
   }
 
   static create(outer, binds, exprs) {
-    if (binds.length != exprs.length) {
-      throw 'Bindings do not match expressions';
-    }
-
     const newEnv = new Env(outer);
 
     binds.forEach((element, ind) => {

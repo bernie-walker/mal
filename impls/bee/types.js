@@ -209,11 +209,40 @@ class MalFunc extends MalVal {
   prStr(printReadably = false) {
     return '#<function>';
   }
+
+  equals(that) {
+    return this === that;
+  }
+
+  eval(args) {
+    if (this.params.length != args.length) {
+      throw 'Bindings do not match expressions';
+    }
+
+    return {
+      fnEnv: this.env,
+      binds: this.params,
+      exprs: args,
+      fnBody: this.body,
+    };
+  }
 }
 
 class VariadicFunc extends MalFunc {
   constructor(env, params, body) {
     super(env, params, body);
+  }
+
+  eval(args) {
+    const varExpStart = this.params.length - 1;
+
+    if (args.length < varExpStart) {
+      throw 'Bindings do not match expressions';
+    }
+
+    const varExp = new List(args.slice(varExpStart));
+
+    return super.eval(args.slice(0, varExpStart).concat(varExp));
   }
 }
 
@@ -224,6 +253,21 @@ class None {
 }
 
 const NONE = new None();
+
+class Atom extends MalVal {
+  constructor(malVal) {
+    super();
+    this.value = malVal;
+  }
+
+  prStr(printReadably = false) {
+    return `(atom ${prStr(this.value, printReadably)})`;
+  }
+
+  equals(that) {
+    return equals(this.value, that.value);
+  }
+}
 
 module.exports = {
   prStr,
@@ -239,4 +283,5 @@ module.exports = {
   MalFunc,
   VariadicFunc,
   NONE,
+  Atom,
 };

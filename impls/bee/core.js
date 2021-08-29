@@ -1,7 +1,7 @@
 const { readFileSync } = require('fs');
 
 const { readStr } = require('./reader');
-const { prStr, Nil, List, MalSeq, isEqual, Str } = require('./types');
+const { prStr, Nil, List, MalSeq, isEqual, Str, Atom } = require('./types');
 
 const add = (...args) => args.reduce((a, b) => a + b, 0);
 
@@ -65,6 +65,17 @@ const not = (val) => {
   return false;
 };
 
+const atom = (val) => new Atom(val);
+
+const isAtom = (val) => val instanceof Atom;
+
+const deref = (atom) => atom.value;
+
+const resetAtom = (atom, value) => {
+  atom.value = value;
+  return value;
+};
+
 const readString = (str) => readStr(str.string);
 
 const slurp = (fileName) => {
@@ -94,6 +105,10 @@ const core = {
   '>': gt,
   '>=': gte,
   not,
+  atom,
+  'atom?': isAtom,
+  deref,
+  'reset!': resetAtom,
   'read-string': readString,
   slurp,
 };

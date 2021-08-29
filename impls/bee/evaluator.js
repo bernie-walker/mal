@@ -39,17 +39,23 @@ const evalAst = (ast, env) => {
   return ast;
 };
 
-const evalMalFunc = (fn, args) => {
-  const { env, params, body } = fn;
+const isAmpersand = (val) => val instanceof Sym && val.symbol === '&';
 
-  if (fn instanceof VariadicFunc) {
-    args = [new List(args)];
+const prepareBinds = (params) => {
+  const ampPosition = params.findIndex(isAmpersand);
+
+  if (ampPosition === -1) {
+    return { variadic: false, binds: params };
   }
 
-  return [Env.create(env, params, args), body];
-};
+  if (ampPosition !== params.length - 2) {
+    throw 'Invalid parameters';
+  }
 
-const isAmpersand = (val) => val instanceof Sym && val.symbol === '&';
+  params = params.slice(0, ampPosition).concat(params.slice(ampPosition + 1));
+
+  return { variadic: true, binds: params };
+};
 
 const defMalFunc = (list, env) => {
   if (list.length !== 3) {
@@ -58,17 +64,13 @@ const defMalFunc = (list, env) => {
 
   const [, params, fnBody] = list;
 
-  const [firstParam, ...restParams] = params.elements;
+  const { variadic, binds } = prepareBinds(params.elements);
 
-  if (!isAmpersand(firstParam)) {
-    return new MalFunc(env, params.elements, fnBody);
+  if (variadic) {
+    return new VariadicFunc(env, binds, fnBody);
   }
 
-  if (restParams.length !== 1) {
-    throw 'Invalid parameter list';
-  }
-
-  return new VariadicFunc(env, restParams, fnBody);
+  return new MalFunc(env, binds, fnBody);
 };
 
 const evalIf = (list, env) => {
@@ -166,9 +168,9 @@ const evaluate = (ast, env) => {
     const [fn, ...args] = evalAst(ast, env).elements;
 
     if (fn instanceof MalFunc) {
-      const [fnEnv, fnBody] = evalMalFunc(fn, args);
+      const { fnEnv, binds, exprs, fnBody } = fn.eval(args);
 
-      env = fnEnv;
+      env = Env.create(fnEnv, binds, exprs);
       ast = fnBody;
 
       continue;
@@ -183,3 +185,5 @@ const evaluate = (ast, env) => {
 };
 
 module.exports = { evaluate };
+
+// ( (fn* (& more) (count more)) 1 2 3)
