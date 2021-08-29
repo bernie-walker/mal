@@ -8,7 +8,7 @@ class Env {
 
   set(sym, value) {
     if (!(sym instanceof Sym)) {
-      throw `${prStr(sym, true)} is not a Symbol`
+      throw `${prStr(sym, true)} is not a Symbol`;
     }
 
     this.data.set(sym.symbol, value);
@@ -32,7 +32,7 @@ class Env {
     const env = this.find(sym);
 
     if (env === null) {
-      throw `${prStr(sym, true)} not found`
+      throw `${prStr(sym, true)} not found`;
     }
 
     return env.data.get(sym.symbol);

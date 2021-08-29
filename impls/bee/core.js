@@ -1,3 +1,6 @@
+const { readFileSync } = require('fs');
+
+const { readStr } = require('./reader');
 const { prStr, Nil, List, MalSeq, isEqual, Str } = require('./types');
 
 const add = (...args) => args.reduce((a, b) => a + b, 0);
@@ -62,6 +65,16 @@ const not = (val) => {
   return false;
 };
 
+const readString = (str) => readStr(str.string);
+
+const slurp = (fileName) => {
+  try {
+    return new Str(readFileSync(fileName.string, 'utf-8'));
+  } catch (error) {
+    throw 'Error while reading file';
+  }
+};
+
 const core = {
   '+': add,
   '*': mul,
@@ -80,7 +93,9 @@ const core = {
   '<=': lte,
   '>': gt,
   '>=': gte,
-  not: not,
+  not,
+  'read-string': readString,
+  slurp,
 };
 
 module.exports = core;
