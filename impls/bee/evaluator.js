@@ -9,7 +9,7 @@ const {
   MalFunc,
 } = require('./types');
 const Env = require('./env');
-const { init, last } = require('./utils');
+const { init, last, tail } = require('./utils');
 
 const evalAst = (ast, env) => {
   if (ast instanceof Sym) {
@@ -112,11 +112,11 @@ const evaluate = (ast, env) => {
     }
 
     if (firstEl.symbol === 'do') {
-      init(ast.elements).forEach((f) => {
-        evalAst(f, env);
-      });
+      const forms = tail(ast.elements);
 
-      ast = last(ast.elements);
+      evalAst(new List(init(forms)), env);
+
+      ast = last(forms);
 
       continue;
     }

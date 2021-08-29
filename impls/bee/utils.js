@@ -2,6 +2,8 @@ const init = (seq) => seq.slice(0, -1);
 
 const last = (seq) => seq[seq.length - 1];
 
+const tail = (seq) => seq.slice(1);
+
 const identity = (x) => x;
 
 const compose =
@@ -11,4 +13,4 @@ const compose =
 
 const comp = (...args) => args.reduce(compose, identity);
 
-module.exports = { comp, init, last };
+module.exports = { comp, init, last, tail };
