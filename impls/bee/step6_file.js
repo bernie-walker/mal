@@ -26,7 +26,7 @@ rep(
   '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
 );
 
-const repl = (str) => {
+const execute = (str) => {
   try {
     const output = rep(str);
     if (output.length > 0) {
@@ -34,11 +34,24 @@ const repl = (str) => {
     }
   } catch (error) {
     console.error(error);
-  } finally {
-    main();
   }
 };
 
-const main = () => readLine.question('user> ', repl);
+const repl = (str) => {
+  execute(str);
+  main();
+};
+
+const main = () => {
+  const [, , program] = process.argv;
+
+  if (program !== undefined) {
+    execute(`(load-file "${program}")`);
+    readLine.close();
+    return;
+  }
+
+  readLine.question('user> ', repl);
+};
 
 main();
