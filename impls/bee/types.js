@@ -55,6 +55,10 @@ class MalSeq extends MalVal {
       this.elements.every((el, ind) => equals(el, that.elements[ind]))
     );
   }
+
+  concat(otherSeq) {
+    return new List(this.elements.concat(otherSeq.elements));
+  }
 }
 
 class List extends MalSeq {

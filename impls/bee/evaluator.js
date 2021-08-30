@@ -8,6 +8,7 @@ const {
   MalSeq,
   MalFunc,
   VariadicFunc,
+  Atom,
 } = require('./types');
 const Env = require('./env');
 const { init, last, tail } = require('./utils');

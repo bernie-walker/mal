@@ -23,7 +23,18 @@ loadSym(replEnv, 'eval', _eval);
 const rep = comp(print, _eval, read);
 
 rep(
-  '(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))'
+  `(def! load-file
+      (fn* (f)
+        (eval (read-string
+          (str "(do " (slurp f) "\nnil)")))))`
+);
+
+rep(
+  `(def! swap!
+      (fn* [at func & args]
+        (reset! at
+          (eval
+            (concat (list func (deref at)) args)))))`
 );
 
 const execute = (str) => {

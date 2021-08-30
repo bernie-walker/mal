@@ -29,6 +29,8 @@ const println = (...args) => logString(getString(args, false, ' ').string);
 
 const list = (...elements) => new List(elements);
 
+const concat = (l1, l2) => checkSeq(l1) && checkSeq(l2) && l1.concat(l2);
+
 const isList = (val) => val instanceof List;
 
 const checkSeq = (val) => {
@@ -95,7 +97,8 @@ const core = {
   str,
   prn: prn,
   println,
-  list: list,
+  list,
+  concat,
   'list?': isList,
   'empty?': isEmpty,
   count: count,
