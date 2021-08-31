@@ -1,21 +1,25 @@
 const readLine = require('readline').createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
-const { comp } = require('./utils')
-const { readStr: read } = require('./reader')
-const { prStr } = require('./printer')
+const { comp } = require('./utils');
+const { readStr: read } = require('./reader');
+const { prStr } = require('./printer');
 
-
-const eval = (ast) => ast;
+const _eval = (ast) => ast;
 const print = (val) => prStr(val, true);
 
-const rep = comp(print, eval, read);
+const rep = comp(print, _eval, read);
 
 const main = () => {
   readLine.question('user> ', (str) => {
-    console.log(rep(str));
-    main();
+    try {
+      console.log(rep(str));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      main();
+    }
   });
 };
 

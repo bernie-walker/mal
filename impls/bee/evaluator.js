@@ -8,7 +8,6 @@ const {
   MalSeq,
   MalFunc,
   VariadicFunc,
-  Atom,
 } = require('./types');
 const Env = require('./env');
 const { init, last, tail } = require('./utils');
@@ -186,5 +185,3 @@ const evaluate = (ast, env) => {
 };
 
 module.exports = { evaluate };
-
-// ( (fn* (& more) (count more)) 1 2 3)

@@ -1,5 +1,14 @@
-const { comp } = require('./utils')
-const { List, Vector, Nil, Keyword, Sym, Str, HashMap, NONE } = require('./types')
+const { comp } = require('./utils');
+const {
+  List,
+  Vector,
+  Nil,
+  Keyword,
+  Sym,
+  Str,
+  HashMap,
+  NONE,
+} = require('./types');
 
 class Reader {
   constructor(tokens) {
@@ -50,16 +59,14 @@ const readAtom = (reader) => {
   }
 
   if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
-    const str = token.slice(1, -1).replace(/\\(.)/g, (_, c) => c === "n" ? "\n" : c);
+    const str = token
+      .slice(1, -1)
+      .replace(/\\(.)/g, (_, c) => (c === 'n' ? '\n' : c));
     return new Str(str);
   }
 
   if (token.startsWith('"')) {
     throw 'unbalanced string';
-  }
-
-  if (token.startsWith(';')) {
-    return NONE;
   }
 
   return new Sym(token);
@@ -81,12 +88,12 @@ const readSeq = (reader, terminator) => {
   return seq;
 };
 
-const isValidKey = (key) => ((key instanceof Str) || (key instanceof Keyword));
+const isValidKey = (key) => key instanceof Str || key instanceof Keyword;
 
 const readHashMap = (reader) => {
-  const seq = readSeq(reader, "}");
+  const seq = readSeq(reader, '}');
 
-  if ((seq.length % 2) !== 0) {
+  if (seq.length % 2 !== 0) {
     throw 'Odd number of hashmap arguments';
   }
 
@@ -106,29 +113,44 @@ const readHashMap = (reader) => {
   return new HashMap(map);
 };
 
-const readVector = (reader) => new Vector(readSeq(reader, "]"));
+const readVector = (reader) => new Vector(readSeq(reader, ']'));
 
-const readList = (reader) => new List(readSeq(reader, ")"));
+const readList = (reader) => new List(readSeq(reader, ')'));
 
 const readForm = (reader) => {
   switch (reader.peek()) {
-    case '(': return readList(reader);
-    case '[': return readVector(reader);
-    case '{': return readHashMap(reader);
+    case '(':
+      return readList(reader);
+    case '[':
+      return readVector(reader);
+    case '{':
+      return readHashMap(reader);
 
-    case ')': throw 'unexpected )';
-    case ']': throw 'unexpected ]';
-    case '}': throw 'unexpected }';
+    case ')':
+      throw 'unexpected )';
+    case ']':
+      throw 'unexpected ]';
+    case '}':
+      throw 'unexpected }';
 
-    case undefined: return NONE;
+    case undefined:
+      return NONE;
 
-    default: return readAtom(reader);
+    default:
+      return readAtom(reader);
   }
-}
+};
+
+const collectTokens = (tokens, [, token]) =>
+  token.startsWith(';') ? tokens : tokens.concat(token);
 
 const tokenize = (str) => {
-  const re = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
-  return [...str.matchAll(re)].map(([, token,]) => token).slice(0, -1);
+  const re =
+    /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)/g;
+
+  const strings = [...str.matchAll(re)];
+
+  return strings.reduce(collectTokens, []).slice(0, -1);
 };
 
 const readStr = comp(readForm, Reader.create, tokenize);
