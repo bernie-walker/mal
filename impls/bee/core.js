@@ -71,7 +71,13 @@ const atom = (val) => new Atom(val);
 
 const isAtom = (val) => val instanceof Atom;
 
-const deref = (atom) => atom.value;
+const deref = (atom) => {
+  if (!(atom instanceof Atom)) {
+    throw `${prStr(atom)} is not an Atom`;
+  }
+
+  return atom.value;
+};
 
 const resetAtom = (atom, value) => {
   atom.value = value;
@@ -95,13 +101,13 @@ const core = {
   '/': div,
   'pr-str': prString,
   str,
-  prn: prn,
+  prn,
   println,
   list,
   concat,
   'list?': isList,
   'empty?': isEmpty,
-  count: count,
+  count,
   '=': isEqual,
   '<': lt,
   '<=': lte,

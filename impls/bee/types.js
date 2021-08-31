@@ -69,13 +69,6 @@ class List extends MalSeq {
   prStr(printReadably) {
     return mkString(this.elements, '(', ')', printReadably);
   }
-
-  equals(that) {
-    if (that instanceof List) {
-      return super.equals(that);
-    }
-    return false;
-  }
 }
 
 class Vector extends MalSeq {
@@ -85,13 +78,6 @@ class Vector extends MalSeq {
 
   prStr(printReadably) {
     return mkString(this.elements, '[', ']', printReadably);
-  }
-
-  equals(that) {
-    if (that instanceof Vector) {
-      return super.equals(that);
-    }
-    return false;
   }
 }
 

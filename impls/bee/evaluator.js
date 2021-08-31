@@ -177,7 +177,7 @@ const evaluate = (ast, env) => {
     }
 
     if (fn instanceof Function) {
-      return fn.apply(null, args);
+      return fn(...args);
     }
 
     throw `${prStr(fn)} is not a function`;

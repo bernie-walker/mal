@@ -7,7 +7,7 @@ const { evaluate } = require('./evaluator');
 const { prStr } = require('./printer');
 const Env = require('./env');
 const core = require('./core');
-const { Sym } = require('./types');
+const { Sym, Str, List } = require('./types');
 const { comp } = require('./utils');
 
 const loadSym = (env, sym, val) => env.set(new Sym(sym), val);
@@ -54,7 +54,9 @@ const repl = (str) => {
 };
 
 const main = () => {
-  const [, , program] = process.argv;
+  const [, , program, ...args] = process.argv;
+
+  loadSym(replEnv, '*ARGV*', new List(args.map((arg) => new Str(arg))));
 
   if (program !== undefined) {
     execute(`(load-file "${program}")`);

@@ -31,6 +31,14 @@ class Reader {
   }
 }
 
+const prependSym = (sym, reader) => {
+  if (reader.peek() === undefined) {
+    throw `Invalid use of macro ${sym}`;
+  }
+
+  return new List([new Sym(sym), new Sym(reader.next())]);
+};
+
 const readAtom = (reader) => {
   const token = reader.next();
 
@@ -56,6 +64,10 @@ const readAtom = (reader) => {
 
   if (token.startsWith(':')) {
     return new Keyword(token.slice(1));
+  }
+
+  if (token.startsWith('@')) {
+    return prependSym('deref', reader);
   }
 
   if (token.match(/^"(?:\\.|[^\\"])*"$/)) {
