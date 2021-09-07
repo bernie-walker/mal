@@ -10,7 +10,7 @@ const {
   VariadicFunc,
 } = require('./types');
 const Env = require('./env');
-const { init, last, tail } = require('./utils');
+const { init, last, tail, head } = require('./utils');
 
 const evalAst = (ast, env) => {
   if (ast instanceof Sym) {
@@ -115,17 +115,71 @@ const evalLet = (list, env) => {
   return [newEnv, form];
 };
 
+const createSexp = (op, ...args) => new List([new Sym(op), ...args]);
+
+const checkForSym = (ast, symName) =>
+  ast instanceof Sym && ast.symbol === symName;
+
+const isSpliceUnquote = (elt) =>
+  elt instanceof List && checkForSym(head(elt.elements), 'splice-unquote');
+
+const quoteList = (astElements, quotedAst) => {
+  if (astElements.length === 0) {
+    return quotedAst;
+  }
+
+  const lastEl = last(astElements);
+
+  let sexp;
+
+  if (isSpliceUnquote(lastEl)) {
+    sexp = createSexp('concat', lastEl.elements[1], quotedAst);
+  } else {
+    sexp = createSexp('cons', quasiquote(lastEl), quotedAst);
+  }
+
+  return quoteList(init(astElements), sexp);
+};
+
+const quasiquote = (ast) => {
+  if (!(ast instanceof List)) return createSexp('quote', ast);
+
+  const [firstEl] = ast.elements;
+
+  if (checkForSym(firstEl, 'unquote')) return ast.elements[1];
+
+  const quotedAst = quoteList(ast.elements, List.empty());
+
+  return quotedAst;
+};
+
 const evaluate = (ast, env) => {
   while (true) {
-    if (!(ast instanceof List)) {
-      return evalAst(ast, env);
-    }
+    if (!(ast instanceof List)) return evalAst(ast, env);
 
-    if (ast.isEmpty()) {
-      return ast;
-    }
+    if (ast.isEmpty()) return ast;
 
     const [firstEl] = ast.elements;
+
+    if (firstEl.symbol === 'quote') {
+      if (ast.elements.length !== 2) {
+        throw 'Invalid number of arguments to quote';
+      }
+
+      return ast.elements[1];
+    }
+
+    if (firstEl.symbol === 'quasiquoteexpand')
+      return quasiquote(ast.elements[1], env);
+
+    if (firstEl.symbol === 'quasiquote') {
+      if (ast.elements.length !== 2) {
+        throw 'Invalid number of arguments to quote';
+      }
+
+      ast = quasiquote(ast.elements[1], env);
+      continue;
+    }
 
     if (firstEl.symbol === 'def!') {
       if (ast.elements.length !== 3) {
@@ -161,9 +215,7 @@ const evaluate = (ast, env) => {
       continue;
     }
 
-    if (firstEl.symbol === 'fn*') {
-      return defMalFunc(ast.elements, env);
-    }
+    if (firstEl.symbol === 'fn*') return defMalFunc(ast.elements, env);
 
     const [fn, ...args] = evalAst(ast, env).elements;
 
@@ -176,9 +228,7 @@ const evaluate = (ast, env) => {
       continue;
     }
 
-    if (fn instanceof Function) {
-      return fn(...args);
-    }
+    if (fn instanceof Function) return fn(...args);
 
     throw `${prStr(fn)} is not a function`;
   }

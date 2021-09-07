@@ -36,7 +36,7 @@ const prependSym = (sym, reader) => {
     throw `Invalid use of macro ${sym}`;
   }
 
-  return new List([new Sym(sym), new Sym(reader.next())]);
+  return new List([new Sym(sym), readForm(reader)]);
 };
 
 const readAtom = (reader) => {
@@ -66,8 +66,24 @@ const readAtom = (reader) => {
     return new Keyword(token.slice(1));
   }
 
-  if (token.startsWith('@')) {
+  if (token === '@') {
     return prependSym('deref', reader);
+  }
+
+  if (token === "'") {
+    return prependSym('quote', reader);
+  }
+
+  if (token === '`') {
+    return prependSym('quasiquote', reader);
+  }
+
+  if (token === '~@') {
+    return prependSym('splice-unquote', reader);
+  }
+
+  if (token === '~') {
+    return prependSym('unquote', reader);
   }
 
   if (token.match(/^"(?:\\.|[^\\"])*"$/)) {

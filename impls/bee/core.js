@@ -29,10 +29,6 @@ const println = (...args) => logString(getString(args, false, ' ').string);
 
 const list = (...elements) => new List(elements);
 
-const concat = (l1, l2) => checkSeq(l1) && checkSeq(l2) && l1.concat(l2);
-
-const isList = (val) => val instanceof List;
-
 const checkSeq = (val) => {
   if (!val instanceof MalSeq) {
     throw `${prStr(val, true)} is not a Seq`;
@@ -40,6 +36,16 @@ const checkSeq = (val) => {
 
   return true;
 };
+
+const cons = (el, seq) => seq.cons(el);
+
+const concat = (...sequences) =>
+  sequences.reduce(
+    (con, seq) => checkSeq(seq) && con.concat(seq),
+    List.empty()
+  );
+
+const isList = (val) => val instanceof List;
 
 const isEmpty = (val) => checkSeq(val) && val.isEmpty();
 
@@ -104,6 +110,7 @@ const core = {
   prn,
   println,
   list,
+  cons,
   concat,
   'list?': isList,
   'empty?': isEmpty,

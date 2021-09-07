@@ -55,10 +55,6 @@ class MalSeq extends MalVal {
       this.elements.every((el, ind) => equals(el, that.elements[ind]))
     );
   }
-
-  concat(otherSeq) {
-    return new List(this.elements.concat(otherSeq.elements));
-  }
 }
 
 class List extends MalSeq {
@@ -69,6 +65,18 @@ class List extends MalSeq {
   prStr(printReadably) {
     return mkString(this.elements, '(', ')', printReadably);
   }
+
+  cons(el) {
+    return new List([el, ...this.elements]);
+  }
+
+  concat(otherSeq) {
+    return new List([...this.elements, ...otherSeq.elements]);
+  }
+
+  static empty() {
+    return new List([]);
+  }
 }
 
 class Vector extends MalSeq {
@@ -78,6 +86,14 @@ class Vector extends MalSeq {
 
   prStr(printReadably) {
     return mkString(this.elements, '[', ']', printReadably);
+  }
+
+  cons(el) {
+    return new List([el, ...this.elements]);
+  }
+
+  concat(otherSeq) {
+    return new List([...this.elements, ...otherSeq.elements]);
   }
 }
 
