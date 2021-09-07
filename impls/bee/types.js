@@ -205,11 +205,13 @@ class HashMap extends MalVal {
 }
 
 class MalFunc extends MalVal {
-  constructor(env, params, body) {
+  constructor(env, binds, body, def, isMacro = false) {
     super();
     this.env = env;
-    this.params = params;
+    this.binds = binds;
     this.body = body;
+    this.definition = def;
+    this.isMacro = isMacro;
   }
 
   prStr(printReadably = false) {
@@ -221,26 +223,30 @@ class MalFunc extends MalVal {
   }
 
   eval(args) {
-    if (this.params.length != args.length) {
+    if (this.binds.length != args.length) {
       throw 'Bindings do not match expressions';
     }
 
     return {
       fnEnv: this.env,
-      binds: this.params,
+      binds: this.binds,
       exprs: args,
       fnBody: this.body,
     };
   }
+
+  apply(args) {
+    return this.definition(...args);
+  }
 }
 
 class VariadicFunc extends MalFunc {
-  constructor(env, params, body) {
-    super(env, params, body);
+  constructor(env, binds, def, body, isMacro = false) {
+    super(env, binds, def, body, isMacro);
   }
 
-  eval(args) {
-    const varExpStart = this.params.length - 1;
+  #createExpressions(args) {
+    const varExpStart = this.binds.length - 1;
 
     if (args.length < varExpStart) {
       throw 'Bindings do not match expressions';
@@ -248,7 +254,15 @@ class VariadicFunc extends MalFunc {
 
     const varExp = new List(args.slice(varExpStart));
 
-    return super.eval(args.slice(0, varExpStart).concat(varExp));
+    return args.slice(0, varExpStart).concat(varExp);
+  }
+
+  eval(args) {
+    return super.eval(this.#createExpressions(args));
+  }
+
+  apply(args) {
+    return super.apply(this.#createExpressions(args));
   }
 }
 

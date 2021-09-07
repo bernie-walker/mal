@@ -57,7 +57,7 @@ const prepareBinds = (params) => {
   return { variadic: true, binds: params };
 };
 
-const defMalFunc = (list, env) => {
+const defMalFunc = (list, env, isMacro) => {
   if (list.length !== 3) {
     throw 'Invalid number of args to fn*';
   }
@@ -66,11 +66,16 @@ const defMalFunc = (list, env) => {
 
   const { variadic, binds } = prepareBinds(params.elements);
 
+  const definition = function (...exprs) {
+    const fnScope = Env.create(env, binds, exprs);
+    return evaluate(fnBody, fnScope);
+  };
+
   if (variadic) {
-    return new VariadicFunc(env, binds, fnBody);
+    return new VariadicFunc(env, binds, fnBody, definition, isMacro);
   }
 
-  return new MalFunc(env, binds, fnBody);
+  return new MalFunc(env, binds, fnBody, definition, isMacro);
 };
 
 const evalIf = (list, env) => {
@@ -153,7 +158,29 @@ const quasiquote = (ast) => {
   return quotedAst;
 };
 
-const evaluate = (ast, env) => {
+const isMacroCall = (ast, env) => {
+  if (!(ast instanceof List && head(ast.elements) instanceof Sym)) {
+    return false;
+  }
+
+  const symbol = head(ast.elements);
+  const fn = env.find(symbol) && env.get(symbol);
+
+  return fn instanceof MalFunc && fn.isMacro;
+};
+
+const macroExpand = (ast, env) => {
+  while (isMacroCall(ast, env)) {
+    const [fnName, ...args] = ast.elements;
+    ast = env.get(fnName).apply(args);
+  }
+
+  return ast;
+};
+
+const evaluate = (ast, env, isMacro = false) => {
+  ast = macroExpand(ast, env);
+
   while (true) {
     if (!(ast instanceof List)) return evalAst(ast, env);
 
@@ -169,9 +196,6 @@ const evaluate = (ast, env) => {
       return ast.elements[1];
     }
 
-    if (firstEl.symbol === 'quasiquoteexpand')
-      return quasiquote(ast.elements[1], env);
-
     if (firstEl.symbol === 'quasiquote') {
       if (ast.elements.length !== 2) {
         throw 'Invalid number of arguments to quote';
@@ -181,15 +205,21 @@ const evaluate = (ast, env) => {
       continue;
     }
 
-    if (firstEl.symbol === 'def!') {
+    if (firstEl.symbol === 'quasiquoteexpand')
+      return quasiquote(ast.elements[1], env);
+
+    if (firstEl.symbol === 'def!' || firstEl.symbol === 'defmacro!') {
       if (ast.elements.length !== 3) {
         throw 'Invalid number of arguments to def!';
       }
 
       const [, sym, val] = ast.elements;
 
-      return env.set(sym, evaluate(val, env));
+      return env.set(sym, evaluate(val, env, firstEl.symbol === 'defmacro!'));
     }
+
+    if (firstEl.symbol === 'macroexpand')
+      return macroExpand(ast.elements[1], env);
 
     if (firstEl.symbol === 'let*') {
       const [newEnv, form] = evalLet(ast.elements, env);
@@ -215,7 +245,7 @@ const evaluate = (ast, env) => {
       continue;
     }
 
-    if (firstEl.symbol === 'fn*') return defMalFunc(ast.elements, env);
+    if (firstEl.symbol === 'fn*') return defMalFunc(ast.elements, env, isMacro);
 
     const [fn, ...args] = evalAst(ast, env).elements;
 
