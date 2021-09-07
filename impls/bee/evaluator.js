@@ -178,6 +178,14 @@ const macroExpand = (ast, env) => {
   return ast;
 };
 
+const checkArgLength = (ast, numOfArgs, formName) => {
+  if (ast.elements.length !== numOfArgs) {
+    throw `Invalid number of arguments to ${formName}`;
+  }
+
+  return true;
+};
+
 const evaluate = (ast, env, isMacro = false) => {
   ast = macroExpand(ast, env);
 
@@ -186,66 +194,50 @@ const evaluate = (ast, env, isMacro = false) => {
 
     if (ast.isEmpty()) return ast;
 
-    const [firstEl] = ast.elements;
+    const [elt1, elt2, elt3] = ast.elements;
 
-    if (firstEl.symbol === 'quote') {
-      if (ast.elements.length !== 2) {
-        throw 'Invalid number of arguments to quote';
-      }
+    switch (elt1.symbol) {
+      case 'quote':
+        return checkArgLength(ast, 2, 'quote') && elt2;
 
-      return ast.elements[1];
+      case 'quasiquote':
+        checkArgLength(ast, 2, 'quasiquote');
+        ast = quasiquote(elt2, env);
+        continue;
+
+      case 'quasiquoteexpand':
+        return quasiquote(elt2, env);
+
+      case 'def!':
+        checkArgLength(ast, 3, 'def!');
+        return env.set(elt2, evaluate(elt3, env));
+
+      case 'defmacro!':
+        checkArgLength(ast, 3, 'defmacro!');
+        return env.set(elt2, evaluate(elt3, env, true));
+
+      case 'macroexpand':
+        return macroExpand(elt2, env);
+
+      case 'let*':
+        const [newEnv, form] = evalLet(ast.elements, env);
+        env = newEnv;
+        ast = form;
+        continue;
+
+      case 'do':
+        const forms = tail(ast.elements);
+        evalAst(new List(init(forms)), env);
+        ast = last(forms);
+        continue;
+
+      case 'if':
+        ast = evalIf(ast.elements, env);
+        continue;
+
+      case 'fn*':
+        return defMalFunc(ast.elements, env, isMacro);
     }
-
-    if (firstEl.symbol === 'quasiquote') {
-      if (ast.elements.length !== 2) {
-        throw 'Invalid number of arguments to quote';
-      }
-
-      ast = quasiquote(ast.elements[1], env);
-      continue;
-    }
-
-    if (firstEl.symbol === 'quasiquoteexpand')
-      return quasiquote(ast.elements[1], env);
-
-    if (firstEl.symbol === 'def!' || firstEl.symbol === 'defmacro!') {
-      if (ast.elements.length !== 3) {
-        throw 'Invalid number of arguments to def!';
-      }
-
-      const [, sym, val] = ast.elements;
-
-      return env.set(sym, evaluate(val, env, firstEl.symbol === 'defmacro!'));
-    }
-
-    if (firstEl.symbol === 'macroexpand')
-      return macroExpand(ast.elements[1], env);
-
-    if (firstEl.symbol === 'let*') {
-      const [newEnv, form] = evalLet(ast.elements, env);
-
-      env = newEnv;
-      ast = form;
-
-      continue;
-    }
-
-    if (firstEl.symbol === 'do') {
-      const forms = tail(ast.elements);
-
-      evalAst(new List(init(forms)), env);
-
-      ast = last(forms);
-
-      continue;
-    }
-
-    if (firstEl.symbol === 'if') {
-      ast = evalIf(ast.elements, env);
-      continue;
-    }
-
-    if (firstEl.symbol === 'fn*') return defMalFunc(ast.elements, env, isMacro);
 
     const [fn, ...args] = evalAst(ast, env).elements;
 
